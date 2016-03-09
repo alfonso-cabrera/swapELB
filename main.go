@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -14,9 +15,9 @@ var log = logsip.New(os.Stdout)
 
 func main() {
 	// Set config options.
-	awsProfile := "multiops"
-	sourceElb := "plinko-admin-api-production"
-	destElb := "plinko-admin-api-internal"
+	awsProfile := ""
+	sourceElb := ""
+	destElb := ""
 
 	// Set AWS_PROFILE env variable on OS.
 	err := os.Setenv("AWS_PROFILE", awsProfile)
@@ -45,6 +46,26 @@ func main() {
 			log.Fatal("Failed to register instance", err.Error())
 		}
 		fmt.Println(resp)
+	}
+
+	time.Sleep(20 * time.Second)
+
+	// Define parameters to pass to DescribeInstanceHealth for destElb
+	paramsDest := &elb.DescribeInstanceHealthInput{LoadBalancerName: aws.String(destElb), Instances: []*elb.Instance{}}
+
+	resultDest, err := svc.DescribeInstanceHealth(paramsDest)
+	if err != nil {
+		log.Fatal("Failed to describe ELBs", err.Error())
+	}
+	// Loop through Instance states for destELB and check if state is InService.
+	for _, instances := range resultDest.InstanceStates {
+		id := aws.StringValue(instances.InstanceId)
+		state := aws.StringValue(instances.State)
+		if state != "InService" {
+			log.Fatalf("%s is not registered successfully with the load balancer", id)
+		} else {
+			fmt.Printf("%s registered successfully with the load balancer.\n", id)
+		}
 	}
 
 }
