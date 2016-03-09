@@ -13,26 +13,7 @@ import (
 var log = logsip.New(os.Stdout)
 
 func main() {
-
-	// // Set env variable to use the correct aws profile from ./aws/credentials
-	// awsProfile := "multiops"
-	// // Set AWS_PROFILE env variable on OS
-	// err := os.Setenv("AWS_PROFILE", awsProfile)
-	// if err != nil {
-	// 	log.Fatal("Failed to set AWS_PROFILE environment variable")
-	// }
-	//
-	// svc := s3.New(session.New())
-	// result, err := svc.ListBuckets(&s3.ListBucketsInput{})
-	// if err != nil {
-	// 	log.Fatal("Failed to list buckets!", err)
-	// 	return
-	// }
-	//
-	// fmt.Println("Buckets:")
-	// for _, bucket := range result.Buckets {
-	// 	fmt.Printf("%s : %s\n", aws.StringValue(bucket.Name), bucket.CreationDate)
-	// }
+	// Set config options.
 	awsProfile := "multiops"
 	sourceElb := "plinko-admin-api-production"
 	destElb := "plinko-admin-api-internal"
@@ -42,17 +23,20 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to set AWS_PROFILE environment variable", err)
 	}
-	// Open new elb session with aws-sdk
+	// Open a new elb session with the aws-sdk.
 	svc := elb.New(session.New())
 
+	// Define parameters to pass to DescribeInstanceHealth
 	params := &elb.DescribeInstanceHealthInput{LoadBalancerName: aws.String(sourceElb), Instances: []*elb.Instance{}}
 
 	result, err := svc.DescribeInstanceHealth(params)
 	if err != nil {
 		log.Fatal("Failed to describe ELBs", err)
 	}
+	// See instances currently registered with sourceElb.
 	fmt.Println(result)
 
+	// Loop through registered instances to get instance ids and register them with the destElb.
 	for _, instances := range result.InstanceStates {
 
 		id := aws.StringValue(instances.InstanceId)
