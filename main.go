@@ -1,8 +1,8 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -12,12 +12,23 @@ import (
 	"github.com/iamthemuffinman/logsip"
 )
 
-var log = logsip.New(os.Stdout)
+var log = logsip.New()
 
 func main() {
-	// Set config options.
-	sourceElb := "<sourceELB_name_here>"
-	destElb := "<destELB_name_here>"
+	// Config options.
+	var sourceElb string
+	var destElb string
+	flag.StringVar(&sourceElb, "source", "", "Source ELB")
+	flag.StringVar(&destElb, "dest", "", "Destination ELB")
+	flag.Parse()
+
+	// Halt if parameters are not specified.
+	if sourceElb == "" {
+		log.Fatal("No source ELB specified, swapELB -h to help")
+	}
+	if destElb == "" {
+		log.Fatal("No destination ELB specified, swapELB -h to help")
+	}
 
 	// Create a new aws session.
 	stsSvc := session.New()
@@ -73,4 +84,3 @@ func main() {
 	}
 
 }
-
